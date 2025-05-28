@@ -42,10 +42,10 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1600px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: 300px 1fr;
+            grid-template-columns: 250px 1fr 1fr 1fr;
             gap: 20px;
         }
 
@@ -56,23 +56,34 @@
             border: 1px solid var(--border-color);
         }
 
-        .main-content {
+        .available-luminas {
+            background-color: var(--card-bg);
+            border-radius: 5px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .picto-column {
             display: grid;
             grid-template-rows: auto 1fr;
             gap: 20px;
         }
+        
+        .lumina-column {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 20px;
+        }
+
+
 
         .character-setup {
             background-color: var(--card-bg);
             border-radius: 5px;
             padding: 15px;
             border: 1px solid var(--border-color);
-        }
-
-        .planning-interface {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
         }
 
         .picto-section, .lumina-section {
@@ -108,9 +119,14 @@
         }
 
         .lumina-list {
-            max-height: 400px;
+            max-height: 60vh;
             overflow-y: auto;
             margin-top: 15px;
+        }
+        
+        .picto-list {
+            max-height: 70vh;
+            overflow-y: auto;
         }
 
         .lumina-item {
@@ -228,12 +244,19 @@
         }
 
         /* Responsive adjustments */
-        @media (max-width: 900px) {
+        @media (max-width: 1200px) {
             .container {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: auto auto;
             }
             
-            .planning-interface {
+            .sidebar {
+                grid-column: 1 / -1;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .container {
                 grid-template-columns: 1fr;
             }
         }
@@ -292,7 +315,13 @@
             </div>
         </aside>
         
-        <main class="main-content">
+        <section class="available-luminas">
+            <div class="picto-list" id="picto-list">
+                <!-- Available items will be dynamically added here -->
+            </div>
+        </section>
+        
+        <div class="picto-column">
             <section class="character-setup">
                 <h2>Character Setup</h2>
                 <div class="lumina-points">
@@ -305,34 +334,23 @@
                 </div>
             </section>
             
-            <div class="planning-interface">
-                <section class="picto-section">
-                    <h2>Picto Equipment (Max 3)</h2>
-                    <div class="picto-slots">
-                        <div class="picto-slot" id="picto-slot-1">
-                            <span>Empty Slot</span>
-                        </div>
-                        <div class="picto-slot" id="picto-slot-2">
-                            <span>Empty Slot</span>
-                        </div>
-                        <div class="picto-slot" id="picto-slot-3">
-                            <span>Empty Slot</span>
-                        </div>
+            <section class="picto-section">
+                <h2>Picto Selection</h2>
+                <div class="picto-slots">
+                    <div class="picto-slot" id="picto-slot-1">
+                        <span>Empty Slot</span>
                     </div>
-                    
-                    <div class="picto-list" id="picto-list">
-                        <!-- Available items will be dynamically added here -->
+                    <div class="picto-slot" id="picto-slot-2">
+                        <span>Empty Slot</span>
                     </div>
-                </section>
-                
-                <section class="lumina-section">
-                    <h2>Lumina Selection</h2>
-                    <div class="lumina-list" id="lumina-list">
-                        <!-- Selected Luminas will be displayed here -->
+                    <div class="picto-slot" id="picto-slot-3">
+                        <span>Empty Slot</span>
                     </div>
-                </section>
-            </div>
-            
+                </div>
+            </section>
+        </div>
+        
+        <div class="lumina-column">
             <section class="build-summary">
                 <h2>Build Summary</h2>
                 <div class="stats-grid">
@@ -350,7 +368,14 @@
                     </div>
                 </div>
             </section>
-        </main>
+            
+            <section class="lumina-section">
+                <h2>Lumina Selection</h2>
+                <div class="lumina-list" id="lumina-list">
+                    <!-- Selected Luminas will be displayed here -->
+                </div>
+            </section>
+        </div>
     </div>
 
     <script src="picto-data.js"></script>
@@ -529,6 +554,12 @@
                 return;
             }
             
+            // Check if already selected as Lumina
+            if (selectedLuminas.some(l => l.name === itemName)) {
+                alert('This item is already selected as a Lumina. You cannot use the same item as both a Picto and a Lumina.');
+                return;
+            }
+            
             // Find the first empty slot
             const emptySlotIndex = selectedPictos.findIndex(p => p === null);
             
@@ -552,6 +583,12 @@
             // Check if already selected as Lumina
             if (selectedLuminas.some(l => l.name === itemName)) {
                 alert('This item is already selected as a Lumina.');
+                return;
+            }
+            
+            // Check if already selected as Picto
+            if (selectedPictos.some(p => p && p.name === itemName)) {
+                alert('This item is already equipped as a Picto. You cannot use the same item as both a Picto and a Lumina.');
                 return;
             }
             
