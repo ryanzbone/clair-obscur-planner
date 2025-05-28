@@ -98,6 +98,8 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
+            text-align: center;
+            padding: 5px;
         }
 
         .picto-slot.filled {
@@ -209,6 +211,22 @@
             margin-top: 10px;
         }
 
+        .item-buttons {
+            margin-top: 8px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .item-buttons button {
+            padding: 4px 8px;
+            font-size: 12px;
+            margin: 0;
+        }
+
+        .remove-btn {
+            background-color: var(--error-color);
+        }
+
         /* Responsive adjustments */
         @media (max-width: 900px) {
             .container {
@@ -254,13 +272,6 @@
                     <option value="Defense">Defense</option>
                     <option value="Speed">Speed</option>
                     <option value="CriticalRate">Critical Rate</option>
-                </select>
-                
-                <h4>View Mode</h4>
-                <select id="view-mode">
-                    <option value="all">Show All</option>
-                    <option value="pictos">Show Pictos Only</option>
-                    <option value="luminas">Show Luminas Only</option>
                 </select>
                 
                 <button id="apply-filters">Apply Filters</button>
@@ -310,19 +321,14 @@
                     </div>
                     
                     <div class="picto-list" id="picto-list">
-                        <!-- Pictos will be dynamically added here -->
+                        <!-- Available items will be dynamically added here -->
                     </div>
                 </section>
                 
                 <section class="lumina-section">
                     <h2>Lumina Selection</h2>
-                    <div class="selected-luminas" id="selected-luminas">
-                        <h3>Selected Luminas</h3>
-                        <!-- Selected Luminas will be displayed here -->
-                    </div>
-                    
                     <div class="lumina-list" id="lumina-list">
-                        <!-- Luminas will be dynamically added here -->
+                        <!-- Selected Luminas will be displayed here -->
                     </div>
                 </section>
             </div>
@@ -359,7 +365,6 @@
         const minCostInput = document.getElementById('min-cost');
         const maxCostInput = document.getElementById('max-cost');
         const statFilter = document.getElementById('stat-filter');
-        const viewMode = document.getElementById('view-mode');
         const applyFiltersBtn = document.getElementById('apply-filters');
         const resetFiltersBtn = document.getElementById('reset-filters');
         
@@ -376,7 +381,6 @@
         
         const pictoListDiv = document.getElementById('picto-list');
         const luminaListDiv = document.getElementById('lumina-list');
-        const selectedLuminasDiv = document.getElementById('selected-luminas');
         
         const totalHealthSpan = document.getElementById('total-health');
         const totalDefenseSpan = document.getElementById('total-defense');
@@ -406,10 +410,11 @@
         // Fetch and process the data
         function fetchData() {
             // The data is already loaded from picto-data.js
+            // All items in pictoData are actually Luminas, so we'll treat them as such
             
             // Render the initial view
-            renderPictoList();
-            renderLuminaList();
+            renderAvailableItems();
+            renderSelectedLuminas();
             updateBuildSummary();
         }
         
@@ -418,6 +423,13 @@
             // Filter buttons
             applyFiltersBtn.addEventListener('click', applyFilters);
             resetFiltersBtn.addEventListener('click', resetFilters);
+            
+            // Search input for real-time filtering
+            searchInput.addEventListener('input', applyFilters);
+            typeFilter.addEventListener('change', applyFilters);
+            minCostInput.addEventListener('input', applyFilters);
+            maxCostInput.addEventListener('input', applyFilters);
+            statFilter.addEventListener('change', applyFilters);
             
             // Lumina points input
             luminaPointsInput.addEventListener('change', updateLuminaPoints);
@@ -435,111 +447,161 @@
             importBuildBtn.addEventListener('click', importBuild);
         }
         
-        // Render the list of Pictos
-        function renderPictoList() {
-            pictoListDiv.innerHTML = '<h3>Available Pictos</h3>';
+        // Render the list of available items (treating all as Luminas)
+        function renderAvailableItems() {
+            pictoListDiv.innerHTML = '<h3>Available Luminas</h3>';
             
-            // Filter the Pictos based on current filters
-            const filteredPictos = filterItems(pictoData, true);
+            // Filter the items based on current filters
+            const filteredItems = filterItems(pictoData);
             
-            if (filteredPictos.length === 0) {
-                pictoListDiv.innerHTML += '<p>No Pictos match the current filters.</p>';
+            if (filteredItems.length === 0) {
+                pictoListDiv.innerHTML += '<p>No Luminas match the current filters.</p>';
                 return;
             }
             
-            // Create a div for each Picto
-            filteredPictos.forEach(picto => {
-                const pictoDiv = document.createElement('div');
-                pictoDiv.className = 'lumina-item';
-                pictoDiv.dataset.name = picto.name;
+            // Create a div for each item
+            filteredItems.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'lumina-item';
+                itemDiv.dataset.name = item.name;
                 
-                // Check if this Picto is already selected
-                const isSelected = selectedPictos.some(p => p && p.name === picto.name);
-                if (isSelected) {
-                    pictoDiv.classList.add('selected');
+                // Check if this item is already selected as a Picto
+                const isSelectedAsPicto = selectedPictos.some(p => p && p.name === item.name);
+                // Check if this item is already selected as a Lumina
+                const isSelectedAsLumina = selectedLuminas.some(l => l.name === item.name);
+                
+                if (isSelectedAsPicto || isSelectedAsLumina) {
+                    itemDiv.classList.add('selected');
                 }
                 
-                pictoDiv.innerHTML = `
+                itemDiv.innerHTML = `
                     <div>
-                        <strong>${picto.name}</strong> (Cost: ${picto.cost})
-                        <div>Type: ${picto.type}</div>
-                        <div>Lumina: ${picto.lumina}</div>
-                        <div>Stats: ${formatStats(picto.bonusStats)}</div>
+                        <strong>${item.name}</strong> (Cost: ${item.cost})
+                        <div>Type: ${item.type}</div>
+                        <div>Effect: ${item.lumina}</div>
+                        <div>Stats: ${formatStats(item.bonusStats)}</div>
+                        <div class="item-buttons">
+                            <button onclick="selectAsPicto('${item.name.replace(/'/g, "\\'")}')">Add as Picto</button>
+                            <button onclick="selectAsLumina('${item.name.replace(/'/g, "\\'")}')">Add as Lumina</button>
+                        </div>
                     </div>
                 `;
                 
-                pictoDiv.addEventListener('click', () => selectPicto(picto));
-                
-                pictoListDiv.appendChild(pictoDiv);
-            });
-        }
-        
-        // Render the list of Luminas
-        function renderLuminaList() {
-            luminaListDiv.innerHTML = '<h3>Available Luminas</h3>';
-            
-            // Filter the Luminas based on current filters
-            const filteredLuminas = filterItems(pictoData, false);
-            
-            if (filteredLuminas.length === 0) {
-                luminaListDiv.innerHTML += '<p>No Luminas match the current filters.</p>';
-                return;
-            }
-            
-            // Create a div for each Lumina
-            filteredLuminas.forEach(picto => {
-                const luminaDiv = document.createElement('div');
-                luminaDiv.className = 'lumina-item';
-                luminaDiv.dataset.name = picto.name;
-                
-                // Check if this Lumina is already selected
-                const isSelected = selectedLuminas.some(l => l.name === picto.name);
-                if (isSelected) {
-                    luminaDiv.classList.add('selected');
-                }
-                
-                luminaDiv.innerHTML = `
-                    <div>
-                        <strong>${picto.name}</strong> (Cost: ${picto.cost})
-                        <div>Type: ${picto.type}</div>
-                        <div>Effect: ${picto.lumina}</div>
-                    </div>
-                `;
-                
-                luminaDiv.addEventListener('click', () => toggleLumina(picto));
-                
-                luminaListDiv.appendChild(luminaDiv);
+                pictoListDiv.appendChild(itemDiv);
             });
         }
         
         // Update the selected Luminas display
-        function updateSelectedLuminas() {
-            selectedLuminasDiv.innerHTML = '<h3>Selected Luminas</h3>';
+        function renderSelectedLuminas() {
+            luminaListDiv.innerHTML = '<h3>Selected Luminas</h3>';
             
             if (selectedLuminas.length === 0) {
-                selectedLuminasDiv.innerHTML += '<p>No Luminas selected.</p>';
+                luminaListDiv.innerHTML += '<p>No Luminas selected.</p>';
                 return;
             }
             
-            const luminasList = document.createElement('ul');
             selectedLuminas.forEach(lumina => {
-                const luminaItem = document.createElement('li');
-                luminaItem.innerHTML = `
-                    <strong>${lumina.name}</strong> (Cost: ${lumina.cost}) - ${lumina.lumina}
-                    <button class="remove-lumina" data-name="${lumina.name}">Remove</button>
+                const luminaDiv = document.createElement('div');
+                luminaDiv.className = 'lumina-item selected';
+                luminaDiv.innerHTML = `
+                    <div>
+                        <strong>${lumina.name}</strong> (Cost: ${lumina.cost})
+                        <div>Type: ${lumina.type}</div>
+                        <div>Effect: ${lumina.lumina}</div>
+                        <div>Stats: ${formatStats(lumina.bonusStats)}</div>
+                        <div class="item-buttons">
+                            <button class="remove-btn" onclick="removeLumina('${lumina.name.replace(/'/g, "\\'")}')">Remove</button>
+                        </div>
+                    </div>
                 `;
-                luminasList.appendChild(luminaItem);
+                luminaListDiv.appendChild(luminaDiv);
             });
+        }
+        
+        // Select an item as a Picto for a slot
+        function selectAsPicto(itemName) {
+            const item = pictoData.find(p => p.name === itemName);
+            if (!item) return;
             
-            selectedLuminasDiv.appendChild(luminasList);
+            // Check if already selected as Picto
+            if (selectedPictos.some(p => p && p.name === itemName)) {
+                alert('This item is already equipped as a Picto.');
+                return;
+            }
             
-            // Add event listeners to remove buttons
-            document.querySelectorAll('.remove-lumina').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const luminaName = button.dataset.name;
-                    removeLumina(luminaName);
-                });
+            // Find the first empty slot
+            const emptySlotIndex = selectedPictos.findIndex(p => p === null);
+            
+            if (emptySlotIndex !== -1) {
+                // If there's an empty slot, add the item
+                selectedPictos[emptySlotIndex] = item;
+                updatePictoSlots();
+                renderAvailableItems();
+                updateBuildSummary();
+            } else {
+                // If all slots are filled, show a message
+                alert('All Picto slots are filled. Remove a Picto first.');
+            }
+        }
+        
+        // Select an item as a Lumina
+        function selectAsLumina(itemName) {
+            const item = pictoData.find(p => p.name === itemName);
+            if (!item) return;
+            
+            // Check if already selected as Lumina
+            if (selectedLuminas.some(l => l.name === itemName)) {
+                alert('This item is already selected as a Lumina.');
+                return;
+            }
+            
+            // Add to selected Luminas
+            selectedLuminas.push(item);
+            renderSelectedLuminas();
+            renderAvailableItems();
+            updateBuildSummary();
+        }
+        
+        // Remove a Lumina by name
+        function removeLumina(luminaName) {
+            const index = selectedLuminas.findIndex(l => l.name === luminaName);
+            
+            if (index !== -1) {
+                selectedLuminas.splice(index, 1);
+                renderSelectedLuminas();
+                renderAvailableItems();
+                updateBuildSummary();
+            }
+        }
+        
+        // Toggle Picto selection (remove if clicked on a filled slot)
+        function togglePictoSelection(slotIndex) {
+            if (selectedPictos[slotIndex]) {
+                selectedPictos[slotIndex] = null;
+                updatePictoSlots();
+                renderAvailableItems();
+                updateBuildSummary();
+            }
+        }
+        
+        // Update the Picto slots display
+        function updatePictoSlots() {
+            pictoSlots.forEach((slot, index) => {
+                const picto = selectedPictos[index];
+                
+                if (picto) {
+                    slot.innerHTML = `
+                        <div>
+                            <strong>${picto.name}</strong>
+                            <div>Type: ${picto.type}</div>
+                            <div>Stats: ${formatStats(picto.bonusStats)}</div>
+                        </div>
+                    `;
+                    slot.classList.add('filled');
+                } else {
+                    slot.innerHTML = '<span>Empty Slot</span>';
+                    slot.classList.remove('filled');
+                }
             });
         }
         
@@ -601,83 +663,6 @@
             return total;
         }
         
-        // Select a Picto for a slot
-        function selectPicto(picto) {
-            // Find the first empty slot
-            const emptySlotIndex = selectedPictos.findIndex(p => p === null);
-            
-            if (emptySlotIndex !== -1) {
-                // If there's an empty slot, add the Picto
-                selectedPictos[emptySlotIndex] = picto;
-                updatePictoSlots();
-                renderPictoList();
-                updateBuildSummary();
-            } else {
-                // If all slots are filled, show a message
-                alert('All Picto slots are filled. Remove a Picto first.');
-            }
-        }
-        
-        // Toggle Picto selection (remove if clicked on a filled slot)
-        function togglePictoSelection(slotIndex) {
-            if (selectedPictos[slotIndex]) {
-                selectedPictos[slotIndex] = null;
-                updatePictoSlots();
-                renderPictoList();
-                updateBuildSummary();
-            }
-        }
-        
-        // Update the Picto slots display
-        function updatePictoSlots() {
-            pictoSlots.forEach((slot, index) => {
-                const picto = selectedPictos[index];
-                
-                if (picto) {
-                    slot.innerHTML = `
-                        <div>
-                            <strong>${picto.name}</strong>
-                            <div>Type: ${picto.type}</div>
-                            <div>Stats: ${formatStats(picto.bonusStats)}</div>
-                        </div>
-                    `;
-                    slot.classList.add('filled');
-                } else {
-                    slot.innerHTML = '<span>Empty Slot</span>';
-                    slot.classList.remove('filled');
-                }
-            });
-        }
-        
-        // Toggle Lumina selection
-        function toggleLumina(lumina) {
-            const index = selectedLuminas.findIndex(l => l.name === lumina.name);
-            
-            if (index !== -1) {
-                // If already selected, remove it
-                selectedLuminas.splice(index, 1);
-            } else {
-                // If not selected, add it
-                selectedLuminas.push(lumina);
-            }
-            
-            updateSelectedLuminas();
-            renderLuminaList();
-            updateBuildSummary();
-        }
-        
-        // Remove a Lumina by name
-        function removeLumina(luminaName) {
-            const index = selectedLuminas.findIndex(l => l.name === luminaName);
-            
-            if (index !== -1) {
-                selectedLuminas.splice(index, 1);
-                updateSelectedLuminas();
-                renderLuminaList();
-                updateBuildSummary();
-            }
-        }
-        
         // Update Lumina points
         function updateLuminaPoints() {
             updateBuildSummary();
@@ -685,8 +670,7 @@
         
         // Apply filters
         function applyFilters() {
-            renderPictoList();
-            renderLuminaList();
+            renderAvailableItems();
         }
         
         // Reset filters
@@ -696,25 +680,17 @@
             minCostInput.value = '';
             maxCostInput.value = '';
             statFilter.value = 'all';
-            viewMode.value = 'all';
             
-            renderPictoList();
-            renderLuminaList();
+            renderAvailableItems();
         }
         
         // Filter items based on current filter settings
-        function filterItems(items, isPicto) {
+        function filterItems(items) {
             const searchTerm = searchInput.value.toLowerCase();
             const type = typeFilter.value;
             const minCost = minCostInput.value ? parseInt(minCostInput.value) : 0;
             const maxCost = maxCostInput.value ? parseInt(maxCostInput.value) : Infinity;
             const stat = statFilter.value;
-            const view = viewMode.value;
-            
-            // Check view mode first
-            if ((view === 'pictos' && !isPicto) || (view === 'luminas' && isPicto)) {
-                return [];
-            }
             
             return items.filter(item => {
                 // Search term filter
@@ -827,9 +803,8 @@
             
             // Update the UI
             updatePictoSlots();
-            updateSelectedLuminas();
-            renderPictoList();
-            renderLuminaList();
+            renderSelectedLuminas();
+            renderAvailableItems();
             updateBuildSummary();
             
             showBuildMessage(`Build "${buildName}" loaded successfully!`, 'success');
@@ -914,9 +889,8 @@
                 
                 // Update the UI
                 updatePictoSlots();
-                updateSelectedLuminas();
-                renderPictoList();
-                renderLuminaList();
+                renderSelectedLuminas();
+                renderAvailableItems();
                 updateBuildSummary();
                 
                 showBuildMessage('Build imported successfully!', 'success');
@@ -937,3 +911,6 @@
                 buildMessageDiv.className = '';
             }, 3000);
         }
+    </script>
+</body>
+</html>
