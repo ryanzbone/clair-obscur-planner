@@ -30,10 +30,6 @@ A character planner for Clair Obscur: Expedition 33 that allows players to plan 
 
 1. `index.html` - The main character planner application
 2. `picto-data.js` - Contains the Picto and Lumina data used by the planner
-3. `parse-data.js` - Node.js script to parse data from data.html and save it as JSON and JS
-4. `convert-data.sh` - Bash script to convert data.html to data.json (alternative method)
-5. `data.html` - Contains the raw Picto data from the game
-6. `USAGE.md` - Detailed usage guide for the character planner
 
 ## How to Use
 
@@ -47,24 +43,6 @@ A character planner for Clair Obscur: Expedition 33 that allows players to plan 
 8. Export your build to share with others, or import a build from someone else
 
 For more detailed instructions, please refer to the USAGE.md file.
-
-## Updating the Picto Data
-
-If the game data changes, you can update the Picto data by:
-
-1. Updating the `data.html` file with the latest data from the game
-2. Running the `parse-data.js` script with Node.js:
-   ```
-   npm install cheerio
-   node parse-data.js
-   ```
-3. This will generate a new `data.json` file and update the `picto-data.js` file
-
-Alternatively, you can use the `convert-data.sh` bash script:
-```
-chmod +x convert-data.sh
-./convert-data.sh
-```
 
 ## License
 
