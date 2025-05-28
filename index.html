@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clair Obscur: Expedition 33 - Character Planner</title>
+    <style>
+        :root {
+            --primary-color: #3a3a3a;
+            --secondary-color: #555;
+            --accent-color: #7e57c2;
+            --text-color: #f0f0f0;
+            --border-color: #444;
+            --bg-color: #222;
+            --card-bg: #2a2a2a;
+            --hover-color: #7e57c2;
+            --error-color: #e57373;
+            --success-color: #81c784;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1, h2, h3 {
+            margin-bottom: 15px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+
+        .sidebar {
+            background-color: var(--card-bg);
+            border-radius: 5px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            gap: 20px;
+        }
+
+        .character-setup {
+            background-color: var(--card-bg);
+            border-radius: 5px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .planning-interface {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .picto-section, .lumina-section {
+            background-color: var(--card-bg);
+            border-radius: 5px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .picto-slots {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .picto-slot {
+            height: 100px;
+            background-color: var(--primary-color);
+            border: 2px dashed var(--border-color);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .picto-slot.filled {
+            border-style: solid;
+            border-color: var(--accent-color);
+        }
+
+        .lumina-list {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+
+        .lumina-item {
+            background-color: var(--primary-color);
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+        }
+
+        .lumina-item:hover {
+            border-color: var(--hover-color);
+        }
+
+        .lumina-item.selected {
+            border-color: var(--accent-color);
+            border-width: 2px;
+        }
+
+        .search-filters {
+            margin-bottom: 20px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            background-color: var(--primary-color);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-color);
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .build-summary {
+            margin-top: 20px;
+            background-color: var(--card-bg);
+            border-radius: 5px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .stat-item {
+            background-color: var(--primary-color);
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .budget-status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: var(--primary-color);
+        }
+
+        .budget-status.over-budget {
+            background-color: var(--error-color);
+            color: black;
+        }
+
+        .build-management {
+            margin-top: 20px;
+        }
+
+        .selected-luminas {
+            margin-top: 15px;
+        }
+
+        .error {
+            color: var(--error-color);
+            margin-top: 10px;
+        }
+
+        .success {
+            color: var(--success-color);
+            margin-top: 10px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            
+            .planning-interface {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Clair Obscur: Expedition 33 - Character Planner</h1>
+        <p>Plan your character builds by selecting Pictos and Luminas</p>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <div class="search-filters">
+                <h3>Search & Filters</h3>
+                <input type="text" id="search-input" placeholder="Search by name or description...">
+                
+                <h4>Filter by Type</h4>
+                <select id="type-filter">
+                    <option value="all">All Types</option>
+                    <option value="Offensive">Offensive</option>
+                    <option value="Defensive">Defensive</option>
+                    <option value="Support">Support</option>
+                </select>
+                
+                <h4>Filter by Cost</h4>
+                <div class="cost-range">
+                    <input type="number" id="min-cost" placeholder="Min Cost" min="1" max="40">
+                    <input type="number" id="max-cost" placeholder="Max Cost" min="1" max="40">
+                </div>
+                
+                <h4>Filter by Stats</h4>
+                <select id="stat-filter">
+                    <option value="all">All Stats</option>
+                    <option value="Health">Health</option>
+                    <option value="Defense">Defense</option>
+                    <option value="Speed">Speed</option>
+                    <option value="CriticalRate">Critical Rate</option>
+                </select>
+                
+                <h4>View Mode</h4>
+                <select id="view-mode">
+                    <option value="all">Show All</option>
+                    <option value="pictos">Show Pictos Only</option>
+                    <option value="luminas">Show Luminas Only</option>
+                </select>
+                
+                <button id="apply-filters">Apply Filters</button>
+                <button id="reset-filters">Reset Filters</button>
+            </div>
+            
+            <div class="build-management">
+                <h3>Build Management</h3>
+                <input type="text" id="build-name" placeholder="Build Name">
+                <button id="save-build">Save Build</button>
+                <select id="load-build">
+                    <option value="">-- Select a Build --</option>
+                </select>
+                <button id="delete-build">Delete Build</button>
+                <button id="export-build">Export Build</button>
+                <button id="import-build">Import Build</button>
+                <div id="build-message"></div>
+            </div>
+        </aside>
+        
+        <main class="main-content">
+            <section class="character-setup">
+                <h2>Character Setup</h2>
+                <div class="lumina-points">
+                    <label for="lumina-points">Available Lumina Points:</label>
+                    <input type="number" id="lumina-points" min="1" value="100">
+                </div>
+                
+                <div class="budget-status" id="budget-status">
+                    Lumina Points: <span id="used-points">0</span>/<span id="total-points">100</span>
+                </div>
+            </section>
+            
+            <div class="planning-interface">
+                <section class="picto-section">
+                    <h2>Picto Equipment (Max 3)</h2>
+                    <div class="picto-slots">
+                        <div class="picto-slot" id="picto-slot-1">
+                            <span>Empty Slot</span>
+                        </div>
+                        <div class="picto-slot" id="picto-slot-2">
+                            <span>Empty Slot</span>
+                        </div>
+                        <div class="picto-slot" id="picto-slot-3">
+                            <span>Empty Slot</span>
+                        </div>
+                    </div>
+                    
+                    <div class="picto-list" id="picto-list">
+                        <!-- Pictos will be dynamically added here -->
+                    </div>
+                </section>
+                
+                <section class="lumina-section">
+                    <h2>Lumina Selection</h2>
+                    <div class="selected-luminas" id="selected-luminas">
+                        <h3>Selected Luminas</h3>
+                        <!-- Selected Luminas will be displayed here -->
+                    </div>
+                    
+                    <div class="lumina-list" id="lumina-list">
+                        <!-- Luminas will be dynamically added here -->
+                    </div>
+                </section>
+            </div>
+            
+            <section class="build-summary">
+                <h2>Build Summary</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <strong>Health:</strong> <span id="total-health">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <strong>Defense:</strong> <span id="total-defense">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <strong>Speed:</strong> <span id="total-speed">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <strong>Critical Rate:</strong> <span id="total-crit">0</span>%
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="picto-data.js"></script>
+    <script>
+        // Use the data from picto-data.js
+        let selectedPictos = [null, null, null];
+        let selectedLuminas = [];
+        
+        // DOM elements
+        const searchInput = document.getElementById('search-input');
+        const typeFilter = document.getElementById('type-filter');
+        const minCostInput = document.getElementById('min-cost');
+        const maxCostInput = document.getElementById('max-cost');
+        const statFilter = document.getElementById('stat-filter');
+        const viewMode = document.getElementById('view-mode');
+        const applyFiltersBtn = document.getElementById('apply-filters');
+        const resetFiltersBtn = document.getElementById('reset-filters');
+        
+        const luminaPointsInput = document.getElementById('lumina-points');
+        const usedPointsSpan = document.getElementById('used-points');
+        const totalPointsSpan = document.getElementById('total-points');
+        const budgetStatus = document.getElementById('budget-status');
+        
+        const pictoSlots = [
+            document.getElementById('picto-slot-1'),
+            document.getElementById('picto-slot-2'),
+            document.getElementById('picto-slot-3')
+        ];
+        
+        const pictoListDiv = document.getElementById('picto-list');
+        const luminaListDiv = document.getElementById('lumina-list');
+        const selectedLuminasDiv = document.getElementById('selected-luminas');
+        
+        const totalHealthSpan = document.getElementById('total-health');
+        const totalDefenseSpan = document.getElementById('total-defense');
+        const totalSpeedSpan = document.getElementById('total-speed');
+        const totalCritSpan = document.getElementById('total-crit');
+        
+        const buildNameInput = document.getElementById('build-name');
+        const saveBuildBtn = document.getElementById('save-build');
+        const loadBuildSelect = document.getElementById('load-build');
+        const deleteBuildBtn = document.getElementById('delete-build');
+        const exportBuildBtn = document.getElementById('export-build');
+        const importBuildBtn = document.getElementById('import-build');
+        const buildMessageDiv = document.getElementById('build-message');
+        
+        // Initialize the application when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load the data
+            fetchData();
+            
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Load saved builds
+            loadSavedBuilds();
+        });
+        
+        // Fetch and process the data
+        function fetchData() {
+            // The data is already loaded from picto-data.js
+            
+            // Render the initial view
+            renderPictoList();
+            renderLuminaList();
+            updateBuildSummary();
+        }
+        
+        // Set up all event listeners
+        function setupEventListeners() {
+            // Filter buttons
+            applyFiltersBtn.addEventListener('click', applyFilters);
+            resetFiltersBtn.addEventListener('click', resetFilters);
+            
+            // Lumina points input
+            luminaPointsInput.addEventListener('change', updateLuminaPoints);
+            
+            // Picto slots
+            pictoSlots.forEach((slot, index) => {
+                slot.addEventListener('click', () => togglePictoSelection(index));
+            });
+            
+            // Build management
+            saveBuildBtn.addEventListener('click', saveBuild);
+            loadBuildSelect.addEventListener('change', loadBuild);
+            deleteBuildBtn.addEventListener('click', deleteBuild);
+            exportBuildBtn.addEventListener('click', exportBuild);
+            importBuildBtn.addEventListener('click', importBuild);
+        }
+        
+        // Render the list of Pictos
+        function renderPictoList() {
+            pictoListDiv.innerHTML = '<h3>Available Pictos</h3>';
+            
+            // Filter the Pictos based on current filters
+            const filteredPictos = filterItems(pictoData, true);
+            
+            if (filteredPictos.length === 0) {
+                pictoListDiv.innerHTML += '<p>No Pictos match the current filters.</p>';
+                return;
+            }
+            
+            // Create a div for each Picto
+            filteredPictos.forEach(picto => {
+                const pictoDiv = document.createElement('div');
+                pictoDiv.className = 'lumina-item';
+                pictoDiv.dataset.name = picto.name;
+                
+                // Check if this Picto is already selected
+                const isSelected = selectedPictos.some(p => p && p.name === picto.name);
+                if (isSelected) {
+                    pictoDiv.classList.add('selected');
+                }
+                
+                pictoDiv.innerHTML = `
+                    <div>
+                        <strong>${picto.name}</strong> (Cost: ${picto.cost})
+                        <div>Type: ${picto.type}</div>
+                        <div>Lumina: ${picto.lumina}</div>
+                        <div>Stats: ${formatStats(picto.bonusStats)}</div>
+                    </div>
+                `;
+                
+                pictoDiv.addEventListener('click', () => selectPicto(picto));
+                
+                pictoListDiv.appendChild(pictoDiv);
+            });
+        }
+        
+        // Render the list of Luminas
+        function renderLuminaList() {
+            luminaListDiv.innerHTML = '<h3>Available Luminas</h3>';
+            
+            // Filter the Luminas based on current filters
+            const filteredLuminas = filterItems(pictoData, false);
+            
+            if (filteredLuminas.length === 0) {
+                luminaListDiv.innerHTML += '<p>No Luminas match the current filters.</p>';
+                return;
+            }
+            
+            // Create a div for each Lumina
+            filteredLuminas.forEach(picto => {
+                const luminaDiv = document.createElement('div');
+                luminaDiv.className = 'lumina-item';
+                luminaDiv.dataset.name = picto.name;
+                
+                // Check if this Lumina is already selected
+                const isSelected = selectedLuminas.some(l => l.name === picto.name);
+                if (isSelected) {
+                    luminaDiv.classList.add('selected');
+                }
+                
+                luminaDiv.innerHTML = `
+                    <div>
+                        <strong>${picto.name}</strong> (Cost: ${picto.cost})
+                        <div>Type: ${picto.type}</div>
+                        <div>Effect: ${picto.lumina}</div>
+                    </div>
+                `;
+                
+                luminaDiv.addEventListener('click', () => toggleLumina(picto));
+                
+                luminaListDiv.appendChild(luminaDiv);
+            });
+        }
+        
+        // Update the selected Luminas display
+        function updateSelectedLuminas() {
+            selectedLuminasDiv.innerHTML = '<h3>Selected Luminas</h3>';
+            
+            if (selectedLuminas.length === 0) {
+                selectedLuminasDiv.innerHTML += '<p>No Luminas selected.</p>';
+                return;
+            }
+            
+            const luminasList = document.createElement('ul');
+            selectedLuminas.forEach(lumina => {
+                const luminaItem = document.createElement('li');
+                luminaItem.innerHTML = `
+                    <strong>${lumina.name}</strong> (Cost: ${lumina.cost}) - ${lumina.lumina}
+                    <button class="remove-lumina" data-name="${lumina.name}">Remove</button>
+                `;
+                luminasList.appendChild(luminaItem);
+            });
+            
+            selectedLuminasDiv.appendChild(luminasList);
+            
+            // Add event listeners to remove buttons
+            document.querySelectorAll('.remove-lumina').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const luminaName = button.dataset.name;
+                    removeLumina(luminaName);
+                });
+            });
+        }
+        
+        // Update the build summary
+        function updateBuildSummary() {
+            // Calculate total stats
+            let totalStats = {
+                health: 0,
+                defense: 0,
+                speed: 0,
+                criticalRate: 0
+            };
+            
+            // Add stats from equipped Pictos
+            selectedPictos.forEach(picto => {
+                if (picto) {
+                    totalStats.health += picto.bonusStats.health || 0;
+                    totalStats.defense += picto.bonusStats.defense || 0;
+                    totalStats.speed += picto.bonusStats.speed || 0;
+                    totalStats.criticalRate += picto.bonusStats.criticalRate || 0;
+                }
+            });
+            
+            // Add stats from selected Luminas
+            selectedLuminas.forEach(lumina => {
+                totalStats.health += lumina.bonusStats.health || 0;
+                totalStats.defense += lumina.bonusStats.defense || 0;
+                totalStats.speed += lumina.bonusStats.speed || 0;
+                totalStats.criticalRate += lumina.bonusStats.criticalRate || 0;
+            });
+            
+            // Update the display
+            totalHealthSpan.textContent = totalStats.health;
+            totalDefenseSpan.textContent = totalStats.defense;
+            totalSpeedSpan.textContent = totalStats.speed;
+            totalCritSpan.textContent = totalStats.criticalRate;
+            
+            // Update Lumina points usage
+            const totalPoints = parseInt(luminaPointsInput.value);
+            const usedPoints = calculateUsedPoints();
+            
+            usedPointsSpan.textContent = usedPoints;
+            totalPointsSpan.textContent = totalPoints;
+            
+            // Update budget status styling
+            if (usedPoints > totalPoints) {
+                budgetStatus.classList.add('over-budget');
+            } else {
+                budgetStatus.classList.remove('over-budget');
+            }
+        }
+        
+        // Calculate the total Lumina points used
+        function calculateUsedPoints() {
+            let total = 0;
+            selectedLuminas.forEach(lumina => {
+                total += lumina.cost;
+            });
+            return total;
+        }
+        
+        // Select a Picto for a slot
+        function selectPicto(picto) {
+            // Find the first empty slot
+            const emptySlotIndex = selectedPictos.findIndex(p => p === null);
+            
+            if (emptySlotIndex !== -1) {
+                // If there's an empty slot, add the Picto
+                selectedPictos[emptySlotIndex] = picto;
+                updatePictoSlots();
+                renderPictoList();
+                updateBuildSummary();
+            } else {
+                // If all slots are filled, show a message
+                alert('All Picto slots are filled. Remove a Picto first.');
+            }
+        }
+        
+        // Toggle Picto selection (remove if clicked on a filled slot)
+        function togglePictoSelection(slotIndex) {
+            if (selectedPictos[slotIndex]) {
+                selectedPictos[slotIndex] = null;
+                updatePictoSlots();
+                renderPictoList();
+                updateBuildSummary();
+            }
+        }
+        
+        // Update the Picto slots display
+        function updatePictoSlots() {
+            pictoSlots.forEach((slot, index) => {
+                const picto = selectedPictos[index];
+                
+                if (picto) {
+                    slot.innerHTML = `
+                        <div>
+                            <strong>${picto.name}</strong>
+                            <div>Type: ${picto.type}</div>
+                            <div>Stats: ${formatStats(picto.bonusStats)}</div>
+                        </div>
+                    `;
+                    slot.classList.add('filled');
+                } else {
+                    slot.innerHTML = '<span>Empty Slot</span>';
+                    slot.classList.remove('filled');
+                }
+            });
+        }
+        
+        // Toggle Lumina selection
+        function toggleLumina(lumina) {
+            const index = selectedLuminas.findIndex(l => l.name === lumina.name);
+            
+            if (index !== -1) {
+                // If already selected, remove it
+                selectedLuminas.splice(index, 1);
+            } else {
+                // If not selected, add it
+                selectedLuminas.push(lumina);
+            }
+            
+            updateSelectedLuminas();
+            renderLuminaList();
+            updateBuildSummary();
+        }
+        
+        // Remove a Lumina by name
+        function removeLumina(luminaName) {
+            const index = selectedLuminas.findIndex(l => l.name === luminaName);
+            
+            if (index !== -1) {
+                selectedLuminas.splice(index, 1);
+                updateSelectedLuminas();
+                renderLuminaList();
+                updateBuildSummary();
+            }
+        }
+        
+        // Update Lumina points
+        function updateLuminaPoints() {
+            updateBuildSummary();
+        }
+        
+        // Apply filters
+        function applyFilters() {
+            renderPictoList();
+            renderLuminaList();
+        }
+        
+        // Reset filters
+        function resetFilters() {
+            searchInput.value = '';
+            typeFilter.value = 'all';
+            minCostInput.value = '';
+            maxCostInput.value = '';
+            statFilter.value = 'all';
+            viewMode.value = 'all';
+            
+            renderPictoList();
+            renderLuminaList();
+        }
+        
+        // Filter items based on current filter settings
+        function filterItems(items, isPicto) {
+            const searchTerm = searchInput.value.toLowerCase();
+            const type = typeFilter.value;
+            const minCost = minCostInput.value ? parseInt(minCostInput.value) : 0;
+            const maxCost = maxCostInput.value ? parseInt(maxCostInput.value) : Infinity;
+            const stat = statFilter.value;
+            const view = viewMode.value;
+            
+            // Check view mode first
+            if ((view === 'pictos' && !isPicto) || (view === 'luminas' && isPicto)) {
+                return [];
+            }
+            
+            return items.filter(item => {
+                // Search term filter
+                const nameMatch = item.name.toLowerCase().includes(searchTerm);
+                const descMatch = item.lumina.toLowerCase().includes(searchTerm);
+                if (searchTerm && !nameMatch && !descMatch) return false;
+                
+                // Type filter
+                if (type !== 'all' && !item.type.includes(type)) return false;
+                
+                // Cost filter
+                if (item.cost < minCost || item.cost > maxCost) return false;
+                
+                // Stat filter
+                if (stat !== 'all') {
+                    const statValue = stat === 'Health' ? item.bonusStats.health :
+                                     stat === 'Defense' ? item.bonusStats.defense :
+                                     stat === 'Speed' ? item.bonusStats.speed :
+                                     item.bonusStats.criticalRate;
+                    
+                    if (!statValue || statValue <= 0) return false;
+                }
+                
+                return true;
+            });
+        }
+        
+        // Format stats for display
+        function formatStats(stats) {
+            let formattedStats = [];
+            
+            if (stats.health) formattedStats.push(`Health +${stats.health}`);
+            if (stats.defense) formattedStats.push(`Defense +${stats.defense}`);
+            if (stats.speed) formattedStats.push(`Speed +${stats.speed}`);
+            if (stats.criticalRate) formattedStats.push(`Crit Rate +${stats.criticalRate}%`);
+            
+            return formattedStats.join(', ') || 'None';
+        }
+        
+        // Save the current build
+        function saveBuild() {
+            const buildName = buildNameInput.value.trim();
+            
+            if (!buildName) {
+                showBuildMessage('Please enter a build name.', 'error');
+                return;
+            }
+            
+            const build = {
+                name: buildName,
+                luminaPoints: parseInt(luminaPointsInput.value),
+                pictos: selectedPictos,
+                luminas: selectedLuminas
+            };
+            
+            // Get existing builds
+            let savedBuilds = JSON.parse(localStorage.getItem('clairObscurBuilds') || '{}');
+            
+            // Add or update this build
+            savedBuilds[buildName] = build;
+            
+            // Save back to localStorage
+            localStorage.setItem('clairObscurBuilds', JSON.stringify(savedBuilds));
+            
+            // Update the builds dropdown
+            loadSavedBuilds();
+            
+            showBuildMessage(`Build "${buildName}" saved successfully!`, 'success');
+        }
+        
+        // Load saved builds into the dropdown
+        function loadSavedBuilds() {
+            // Clear existing options except the placeholder
+            while (loadBuildSelect.options.length > 1) {
+                loadBuildSelect.remove(1);
+            }
+            
+            // Get saved builds
+            const savedBuilds = JSON.parse(localStorage.getItem('clairObscurBuilds') || '{}');
+            
+            // Add each build as an option
+            for (const buildName in savedBuilds) {
+                const option = document.createElement('option');
+                option.value = buildName;
+                option.textContent = buildName;
+                loadBuildSelect.appendChild(option);
+            }
+        }
+        
+        // Load a selected build
+        function loadBuild() {
+            const buildName = loadBuildSelect.value;
+            
+            if (!buildName) return;
+            
+            // Get saved builds
+            const savedBuilds = JSON.parse(localStorage.getItem('clairObscurBuilds') || '{}');
+            
+            if (!savedBuilds[buildName]) {
+                showBuildMessage(`Build "${buildName}" not found.`, 'error');
+                return;
+            }
+            
+            const build = savedBuilds[buildName];
+            
+            // Apply the build
+            luminaPointsInput.value = build.luminaPoints;
+            selectedPictos = build.pictos;
+            selectedLuminas = build.luminas;
+            
+            // Update the UI
+            updatePictoSlots();
+            updateSelectedLuminas();
+            renderPictoList();
+            renderLuminaList();
+            updateBuildSummary();
+            
+            showBuildMessage(`Build "${buildName}" loaded successfully!`, 'success');
+        }
+        
+        // Delete a build
+        function deleteBuild() {
+            const buildName = loadBuildSelect.value;
+            
+            if (!buildName) {
+                showBuildMessage('Please select a build to delete.', 'error');
+                return;
+            }
+            
+            // Get saved builds
+            let savedBuilds = JSON.parse(localStorage.getItem('clairObscurBuilds') || '{}');
+            
+            // Delete the build
+            if (savedBuilds[buildName]) {
+                delete savedBuilds[buildName];
+                
+                // Save back to localStorage
+                localStorage.setItem('clairObscurBuilds', JSON.stringify(savedBuilds));
+                
+                // Update the builds dropdown
+                loadSavedBuilds();
+                
+                // Reset the select
+                loadBuildSelect.value = '';
+                
+                showBuildMessage(`Build "${buildName}" deleted successfully!`, 'success');
+            } else {
+                showBuildMessage(`Build "${buildName}" not found.`, 'error');
+            }
+        }
+        
+        // Export the current build
+        function exportBuild() {
+            if (selectedPictos.every(p => p === null) && selectedLuminas.length === 0) {
+                showBuildMessage('Nothing to export. Please create a build first.', 'error');
+                return;
+            }
+            
+            const build = {
+                luminaPoints: parseInt(luminaPointsInput.value),
+                pictos: selectedPictos,
+                luminas: selectedLuminas
+            };
+            
+            // Convert to JSON string
+            const buildJson = JSON.stringify(build);
+            
+            // Create a temporary textarea to copy to clipboard
+            const textarea = document.createElement('textarea');
+            textarea.value = buildJson;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            
+            showBuildMessage('Build exported to clipboard!', 'success');
+        }
+        
+        // Import a build from JSON
+        function importBuild() {
+            const buildJson = prompt('Paste the build JSON here:');
+            
+            if (!buildJson) return;
+            
+            try {
+                const build = JSON.parse(buildJson);
+                
+                // Validate the build
+                if (!build.luminaPoints || !Array.isArray(build.pictos) || !Array.isArray(build.luminas)) {
+                    throw new Error('Invalid build format');
+                }
+                
+                // Apply the build
+                luminaPointsInput.value = build.luminaPoints;
+                selectedPictos = build.pictos;
+                selectedLuminas = build.luminas;
+                
+                // Update the UI
+                updatePictoSlots();
+                updateSelectedLuminas();
+                renderPictoList();
+                renderLuminaList();
+                updateBuildSummary();
+                
+                showBuildMessage('Build imported successfully!', 'success');
+            } catch (error) {
+                showBuildMessage('Failed to import build. Invalid format.', 'error');
+                console.error(error);
+            }
+        }
+        
+        // Show a message in the build management section
+        function showBuildMessage(message, type) {
+            buildMessageDiv.textContent = message;
+            buildMessageDiv.className = type;
+            
+            // Clear the message after 3 seconds
+            setTimeout(() => {
+                buildMessageDiv.textContent = '';
+                buildMessageDiv.className = '';
+            }, 3000);
+        }
